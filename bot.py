@@ -1,6 +1,6 @@
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from telegram_token import TELEGRAM_TOKEN
-from handlers import (
+from handlers1 import (
     start, register, handle_reg_button,
     my_points, add_point, edit_point, delete_point,
     schedule, add_shift, edit_shift, delete_shift,

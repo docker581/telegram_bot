@@ -7,7 +7,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 
-from models import User, PointOfIssue, Shift, Review, Session
+from models import User, Point, Shift, Review, Session
 
 
 logging.basicConfig(
@@ -105,7 +105,7 @@ async def my_points(update: Update, context: CallbackContext) -> None:
             telegram_id=telegram_id
         ).first()
         if user and user.role == 'owner':
-            points = session.query(PointOfIssue).all()
+            points = session.query(Point).all()
             if points:
                 table = prettytable.PrettyTable(
                     ['id', 'name', 'address', 'rating']
@@ -153,7 +153,7 @@ async def add_point(update: Update, context: CallbackContext) -> None:
         if user and user.role == 'owner':
             name = context.args[0]
             address = context.args[1]
-            point = PointOfIssue(name=name, address=address, owner_id=user.id)
+            point = Point(name=name, address=address, owner_id=user.id)
             session.add(point)
             session.commit()
             await update.message.reply_text(f'Пункт выдачи {name} добавлен.')
@@ -188,7 +188,7 @@ async def edit_point(update: Update, context: CallbackContext) -> None:
             new_name = context.args[1]
             new_address = context.args[2]
 
-            point = session.query(PointOfIssue).filter_by(
+            point = session.query(Point).filter_by(
                 id=id
             ).first()
             if point:
@@ -229,7 +229,7 @@ async def delete_point(update: Update, context: CallbackContext) -> None:
         if user and user.role == 'owner':
             id = context.args[0]
 
-            point = session.query(PointOfIssue).filter_by(
+            point = session.query(Point).filter_by(
                 id=id
             ).first()
             if point:
@@ -414,7 +414,7 @@ async def rate_manager(update: Update, context: CallbackContext) -> None:
         point_id = int(context.args[0])
         rating = float(context.args[1])
         comment = ' '.join(context.args[2:])
-        point = session.query(PointOfIssue).filter_by(id=point_id).first()
+        point = session.query(Point).filter_by(id=point_id).first()
         if point:
             review = Review(
                 user_id=update.message.from_user.id,
