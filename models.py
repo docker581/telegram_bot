@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
-    DateTime, ForeignKey, Float, Text,
+    DateTime, ForeignKey, Float, Text, Date
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -47,8 +47,7 @@ class Shift(Base):
 
     id = Column(Integer, primary_key=True)
     point_id = Column(Integer, ForeignKey('points.id'))
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
+    date = Column(Date, nullable=False)
     worker_id = Column(Integer, ForeignKey('users.id'))
     point = relationship('Point', back_populates='shifts')
 
@@ -61,7 +60,7 @@ class Review(Base):
     point_id = Column(Integer, ForeignKey('points.id'), nullable=True)
     rating = Column(Float)
     comment = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
     user = relationship('User', back_populates='reviews')
     point_of_issue = relationship('Point', back_populates='reviews')
 
