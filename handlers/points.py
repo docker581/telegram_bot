@@ -24,14 +24,12 @@ async def my_points(update: Update,
     try:
         telegram_id = update.message.from_user.id
         user = session.query(User).filter_by(
-            telegram_id=telegram_id
-        ).first()
+            telegram_id=telegram_id).first()
         if user and user.role == 'owner':
             points = session.query(Point).all()
             if points:
-                table = prettytable.PrettyTable(
-                    ['id', 'name', 'address', 'rating']
-                )
+                table = prettytable.PrettyTable(['id', 'name', 
+                                                 'address', 'rating'])
                 for point in points:
                     table.add_row([
                         point.id,
@@ -158,7 +156,7 @@ async def edit_point_new_address(update: Update,
             await update.message.reply_text(
                 f'Пункт выдачи "{point_id}" изменен на "{new_name}" '
                 f'по адресу "{new_address}".',
-                reply_markup=ReplyKeyboardRemove()
+                reply_markup=ReplyKeyboardRemove(),
             )
         else:
             await update.message.reply_text('Пункт выдачи с таким ID'
@@ -201,7 +199,7 @@ async def delete_point_id(update: Update,
             session.commit()
             await update.message.reply_text(
                 f'Пункт выдачи "{point_id}" удален.',
-                reply_markup=ReplyKeyboardRemove()
+                reply_markup=ReplyKeyboardRemove(),
             )
         else:
             await update.message.reply_text('Пункт выдачи с таким ID'
