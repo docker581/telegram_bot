@@ -25,10 +25,10 @@ async def my_points(update: Update,
         telegram_id = update.message.from_user.id
         user = session.query(User).filter_by(
             telegram_id=telegram_id).first()
-        if user and user.role == 'owner':
+        if user and user.role == 'reg_owner':
             points = session.query(Point).all()
             if points:
-                table = prettytable.PrettyTable(['id', 'name', 
+                table = prettytable.PrettyTable(['id', 'name',
                                                  'address', 'rating'])
                 for point in points:
                     table.add_row([
@@ -64,7 +64,7 @@ async def add_point_start(update: Update,
     user = session.query(User).filter_by(telegram_id=telegram_id).first()
     session.close()
 
-    if user and user.role == 'owner':
+    if user and user.role == 'reg_owner':
         await update.message.reply_text('Введите название пункта выдачи:')
         return POINT_NAME
     else:
@@ -84,23 +84,27 @@ async def add_point_address(update: Update,
                             context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['address'] = update.message.text
     session = Session()
-    telegram_id = update.message.from_user.id
-    user = session.query(User).filter_by(telegram_id=telegram_id).first()
-
-    if user:
-        name = context.user_data['name']
-        address = context.user_data['address']
-        point = Point(name=name, address=address, owner_id=user.id)
-        session.add(point)
-        session.commit()
-        await update.message.reply_text(
-            f'Пункт выдачи "{name}" по адресу "{address}" добавлен.',
-            reply_markup=ReplyKeyboardRemove(),
-        )
-    else:
-        await update.message.reply_text('Ошибка добавления пункта выдачи.')
-
-    session.close()
+    try:
+        telegram_id = update.message.from_user.id
+        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        if user:
+            name = context.user_data['name']
+            address = context.user_data['address']
+            point = Point(name=name, address=address, owner_id=user.id)
+            session.add(point)
+            session.commit()
+            await update.message.reply_text(
+                f'Пункт выдачи "{name}" по адресу "{address}" добавлен.',
+                reply_markup=ReplyKeyboardRemove(),
+            )
+        else:
+            await update.message.reply_text('Ошибка добавления пункта выдачи.')
+    except Exception:
+        logger.error(traceback.format_exc())
+        await update.message.reply_text('Некорректный запрос на'
+                                        ' добавление пункта выдачи.')
+    finally:
+        session.close()
     return ConversationHandler.END
 
 
@@ -111,7 +115,7 @@ async def edit_point_start(update: Update,
     user = session.query(User).filter_by(telegram_id=telegram_id).first()
     session.close()
 
-    if user and user.role == 'owner':
+    if user and user.role == 'reg_owner':
         await update.message.reply_text('Введите ID пункта выдачи, который'
                                         ' хотите изменить:')
         return POINT_ID
@@ -139,32 +143,37 @@ async def edit_point_new_address(update: Update,
                                  context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['new_address'] = update.message.text
     session = Session()
-    telegram_id = update.message.from_user.id
-    user = session.query(User).filter_by(telegram_id=telegram_id).first()
+    try:
+        telegram_id = update.message.from_user.id
+        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        if user:
+            point_id = context.user_data['id']
+            new_name = context.user_data['new_name']
+            new_address = context.user_data['new_address']
 
-    if user:
-        point_id = context.user_data['id']
-        new_name = context.user_data['new_name']
-        new_address = context.user_data['new_address']
-
-        point = session.query(Point).filter_by(id=point_id).first()
-        if point:
-            point.name = new_name
-            point.address = new_address
-            session.add(point)
-            session.commit()
-            await update.message.reply_text(
-                f'Пункт выдачи "{point_id}" изменен на "{new_name}" '
-                f'по адресу "{new_address}".',
-                reply_markup=ReplyKeyboardRemove(),
-            )
+            point = session.query(Point).filter_by(id=point_id).first()
+            if point:
+                point.name = new_name
+                point.address = new_address
+                session.add(point)
+                session.commit()
+                await update.message.reply_text(
+                    f'Пункт выдачи "{point_id}" изменен на "{new_name}" '
+                    f'по адресу "{new_address}".',
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+            else:
+                await update.message.reply_text('Пункт выдачи с таким ID'
+                                                ' не найден.')
         else:
-            await update.message.reply_text('Пункт выдачи с таким ID'
-                                            ' не найден.')
-    else:
-        await update.message.reply_text('Ошибка редактирования пункта выдачи.')
-
-    session.close()
+            await update.message.reply_text('Ошибка редактирования пункта'
+                                            ' выдачи.')
+    except Exception:
+        logger.error(traceback.format_exc())
+        await update.message.reply_text('Некорректный запрос на'
+                                        ' редактирование пункта выдачи.')
+    finally:
+        session.close()
     return ConversationHandler.END
 
 
@@ -175,7 +184,7 @@ async def delete_point_start(update: Update,
     user = session.query(User).filter_by(telegram_id=telegram_id).first()
     session.close()
 
-    if user and user.role == 'owner':
+    if user and user.role == 'reg_owner':
         await update.message.reply_text('Введите ID пункта выдачи,'
                                         ' который хотите удалить:')
         return POINT_ID
@@ -189,25 +198,29 @@ async def delete_point_id(update: Update,
                           context: ContextTypes.DEFAULT_TYPE) -> int:
     point_id = update.message.text
     session = Session()
-    telegram_id = update.message.from_user.id
-    user = session.query(User).filter_by(telegram_id=telegram_id).first()
-
-    if user:
-        point = session.query(Point).filter_by(id=point_id).first()
-        if point:
-            session.delete(point)
-            session.commit()
-            await update.message.reply_text(
-                f'Пункт выдачи "{point_id}" удален.',
-                reply_markup=ReplyKeyboardRemove(),
-            )
+    try:
+        telegram_id = update.message.from_user.id
+        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        if user:
+            point = session.query(Point).filter_by(id=point_id).first()
+            if point:
+                session.delete(point)
+                session.commit()
+                await update.message.reply_text(
+                    f'Пункт выдачи "{point_id}" удален.',
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+            else:
+                await update.message.reply_text('Пункт выдачи с таким ID'
+                                                ' не найден.')
         else:
-            await update.message.reply_text('Пункт выдачи с таким ID'
-                                            ' не найден.')
-    else:
-        await update.message.reply_text('Ошибка удаления пункта выдачи.')
-
-    session.close()
+            await update.message.reply_text('Ошибка удаления пункта выдачи.')
+    except Exception:
+        logger.error(traceback.format_exc())
+        await update.message.reply_text('Некорректный запрос на'
+                                        ' удаление пункта выдачи.')
+    finally:
+        session.close()
     return ConversationHandler.END
 
 
@@ -244,7 +257,7 @@ delete_point_conv_handler = ConversationHandler(
     entry_points=[CommandHandler('deletepoint', delete_point_start)],
     states={
         POINT_ID: [MessageHandler(
-            filters.TEXT & ~filters.COMMAND,delete_point_id)],
+            filters.TEXT & ~filters.COMMAND, delete_point_id)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )

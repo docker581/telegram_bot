@@ -1,33 +1,31 @@
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from telegram_token import TELEGRAM_TOKEN
-from handlers1 import (
-    start, register, handle_reg_button,
-    my_points, add_point, edit_point, delete_point,
-    schedule, add_shift, edit_shift, delete_shift,
-    rate_manager, rate_worker, view_ratings,
+from telegram.ext import Application
+
+from handlers import (
+    start_handler, reg_handler, reg_button_handler,
+    my_points_handler, add_point_conv_handler,
+    edit_point_conv_handler, delete_point_conv_handler,
+    schedule_handler, add_shift_conv_handler,
+    edit_shift_conv_handler, delete_shift_conv_handler,
 )
+from telegram_token import TELEGRAM_TOKEN
 
 
 def main() -> None:
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('register', register))
-    application.add_handler(CallbackQueryHandler(handle_reg_button))
+    application.add_handler(start_handler)
+    application.add_handler(reg_handler)
+    application.add_handler(reg_button_handler)
 
-    application.add_handler(CommandHandler('mypoints',  my_points))
-    application.add_handler(CommandHandler('addpoint', add_point))
-    application.add_handler(CommandHandler('editpoint', edit_point))
-    application.add_handler(CommandHandler('deletepoint', delete_point))
+    application.add_handler(my_points_handler)
+    application.add_handler(add_point_conv_handler)
+    application.add_handler(edit_point_conv_handler)
+    application.add_handler(delete_point_conv_handler)
 
-    application.add_handler(CommandHandler('schedule',  schedule))
-    application.add_handler(CommandHandler('addshift', add_shift))
-    application.add_handler(CommandHandler('editshift', edit_shift))
-    application.add_handler(CommandHandler('deleteshift', delete_shift))
-
-    application.add_handler(CommandHandler('ratemanager', rate_manager))
-    application.add_handler(CommandHandler('rateworker', rate_worker))
-    application.add_handler(CommandHandler('viewratings', view_ratings))
+    application.add_handler(schedule_handler)
+    application.add_handler(add_shift_conv_handler)
+    application.add_handler(edit_shift_conv_handler)
+    application.add_handler(delete_shift_conv_handler)
 
     application.run_polling()
 

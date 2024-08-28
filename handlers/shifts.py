@@ -4,11 +4,11 @@ import prettytable
 
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
-    ContextTypes, CommandHandler, ConversationHandler, 
+    ContextTypes, CommandHandler, ConversationHandler,
     MessageHandler, filters, CallbackQueryHandler
-)    
+)
 from telegram.constants import ParseMode
-from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
+from telegram_bot_calendar import DetailedTelegramCalendar
 
 from models import User, Shift, Point, Session
 
@@ -50,13 +50,13 @@ async def schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         session.close()
 
 
-async def add_shift_start(update: Update, 
+async def add_shift_start(update: Update,
                           context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text('Укажите id пункта выдачи:')
     return POINT_ID
 
 
-async def add_shift_point_id(update: Update, 
+async def add_shift_point_id(update: Update,
                              context: ContextTypes.DEFAULT_TYPE) -> int:
     point_id = int(update.message.text)
     session = Session()
@@ -69,7 +69,7 @@ async def add_shift_point_id(update: Update,
 
         context.user_data['point_id'] = point_id
         calendar, step = DetailedTelegramCalendar(locale='ru').build()
-        await update.message.reply_text(f'Выберите дату смены:',
+        await update.message.reply_text('Выберите дату смены:',
                                         reply_markup=calendar)
         return DATE
     except Exception:
@@ -80,14 +80,14 @@ async def add_shift_point_id(update: Update,
         session.close()
 
 
-async def add_shift_date(update: Update, 
+async def add_shift_date(update: Update,
                          context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     result, key, step = DetailedTelegramCalendar(
-        locale='ru').process(query.data)    
+        locale='ru').process(query.data)
     if not result and key:
-        await query.message.edit_text(f'Выберите {ru_LSTEP[step]}:', 
+        await query.message.edit_text(f'Выберите {ru_LSTEP[step]}:',
                                       reply_markup=key)
     elif result:
         context.user_data['date'] = result
@@ -95,7 +95,7 @@ async def add_shift_date(update: Update,
         try:
             user = session.query(User).filter_by(
                 telegram_id=query.from_user.id).first()
-            if user and user.role == 'owner':
+            if user and user.role == 'reg_owner':
                 shift = Shift(point_id=context.user_data['point_id'],
                               date=context.user_data['date'],)
                 session.add(shift)
@@ -110,7 +110,7 @@ async def add_shift_date(update: Update,
         finally:
             session.close()
         return ConversationHandler.END
-    
+
 
 async def edit_shift_start(update: Update,
                            context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -130,12 +130,12 @@ async def edit_shift_id(update: Update,
 
         context.user_data['shift_id'] = shift_id
         calendar, step = DetailedTelegramCalendar(locale='ru').build()
-        await update.message.reply_text(
-            f'Выберите новую дату смены:', reply_markup=calendar)
+        await update.message.reply_text('Выберите новую дату смены:',
+                                        reply_markup=calendar)
         return NEW_DATE
     except Exception:
         logger.error(traceback.format_exc())
-        await update.message.reply_text('Некорректный запрос на' 
+        await update.message.reply_text('Некорректный запрос на'
                                         ' изменение смены.')
     finally:
         session.close()
@@ -146,9 +146,9 @@ async def edit_shift_date(update: Update,
     query = update.callback_query
     await query.answer()
     result, key, step = DetailedTelegramCalendar(
-        locale='ru').process(query.data)    
+        locale='ru').process(query.data)
     if not result and key:
-        await query.message.edit_text(f'Выберите {ru_LSTEP[step]}:', 
+        await query.message.edit_text(f'Выберите {ru_LSTEP[step]}:',
                                       reply_markup=key)
     elif result:
         context.user_data['date'] = result
@@ -156,7 +156,7 @@ async def edit_shift_date(update: Update,
         try:
             user = session.query(User).filter_by(
                 telegram_id=query.from_user.id).first()
-            if user and user.role == 'owner':
+            if user and user.role == 'reg_owner':
                 shift = session.query(Shift).filter_by(
                     id=context.user_data['shift_id']).first()
                 shift.date = context.user_data['date']
@@ -167,7 +167,7 @@ async def edit_shift_date(update: Update,
                 await query.message.edit_text('Нет прав на изменение смены.')
         except Exception:
             logger.error(traceback.format_exc())
-            await query.message.edit_text('Некорректный запрос на' 
+            await query.message.edit_text('Некорректный запрос на'
                                           ' изменение смены.')
         finally:
             session.close()
@@ -181,7 +181,7 @@ async def delete_shift_start(update: Update,
 
 
 async def delete_shift_id(update: Update,
-                          context: ContextTypes.DEFAULT_TYPE) -> int:   
+                          context: ContextTypes.DEFAULT_TYPE) -> int:
     shift_id = int(update.message.text)
     session = Session()
     try:
@@ -192,7 +192,7 @@ async def delete_shift_id(update: Update,
 
         telegram_id = update.message.from_user.id
         user = session.query(User).filter_by(telegram_id=telegram_id).first()
-        if user and user.role == 'owner':
+        if user and user.role == 'reg_owner':
             session.delete(shift)
             session.commit()
             await update.message.reply_text(
@@ -201,10 +201,10 @@ async def delete_shift_id(update: Update,
             )
         else:
             await update.message.edit_text('Нет прав на удаление смены.')
-            return ConversationHandler.END  
+            return ConversationHandler.END
     except Exception:
         logger.error(traceback.format_exc())
-        await update.message.reply_text('Некорректный запрос на' 
+        await update.message.reply_text('Некорректный запрос на'
                                         ' изменение смены.')
     finally:
         session.close()
@@ -212,7 +212,7 @@ async def delete_shift_id(update: Update,
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text('Команда отменена.', 
+    await update.message.reply_text('Команда отменена.',
                                     reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
